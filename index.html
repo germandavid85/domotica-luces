@@ -34,11 +34,13 @@ body {
 }
 
 button,
-input {
+input,
+a {
   font: inherit;
 }
 
-button {
+button,
+a[role="button"] {
   cursor: pointer;
 }
 
@@ -186,6 +188,18 @@ h2 {
 .action-button {
   background: var(--accent);
   color: white;
+}
+
+.light-main,
+.action-button {
+  text-decoration: none;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .action-button.off-button {
@@ -460,16 +474,16 @@ input:focus-visible {
 
     <template id="lightCardTemplate">
       <article class="light-card">
-        <button class="light-main" type="button">
+        <a class="light-main" href="#" role="button">
           <span class="light-icon" aria-hidden="true"></span>
           <span class="light-text">
             <strong class="light-name"></strong>
             <span class="light-zone"></span>
           </span>
-        </button>
+        </a>
         <div class="light-actions">
-          <button class="action-button on-button" type="button">Encender</button>
-          <button class="action-button off-button" type="button">Apagar</button>
+          <a class="action-button on-button" href="#" role="button">Encender</a>
+          <a class="action-button off-button" href="#" role="button">Apagar</a>
         </div>
         <p class="light-status" aria-live="polite"></p>
       </article>
@@ -558,6 +572,7 @@ function saveBaseUrl(value) {
   writeStoredValue(STORAGE_KEYS.baseUrl, normalized);
   baseUrlLabel.textContent = normalized;
   connectionDot.className = "connection-dot";
+  refreshCommandLinks();
   return normalized;
 }
 
@@ -578,6 +593,27 @@ function buildUrl(action, zone) {
   return `${state.baseUrl}/api/v2/${path}/${zone}`;
 }
 
+function withCacheBust(url) {
+  return `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+}
+
+function commandHref(action, zone) {
+  return state.baseUrl ? withCacheBust(buildUrl(action, zone)) : "#";
+}
+
+function updateCommandLink(link, action, zone) {
+  link.href = commandHref(action, zone);
+}
+
+function refreshCommandLinks() {
+  for (const card of lightsGrid.querySelectorAll(".light-card")) {
+    const zone = Number(card.dataset.zone);
+    updateCommandLink(card.querySelector(".light-main"), "switch", zone);
+    updateCommandLink(card.querySelector(".on-button"), "on", zone);
+    updateCommandLink(card.querySelector(".off-button"), "off", zone);
+  }
+}
+
 function markCard(card, status, message) {
   card.classList.remove("is-working", "is-error", "is-ok");
   if (status) card.classList.add(status);
@@ -585,11 +621,6 @@ function markCard(card, status, message) {
 }
 
 function sendGetCommand(url, timeoutMs = 1800) {
-  if (IS_ANDROID) {
-    window.location.href = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
-    return Promise.resolve();
-  }
-
   return new Promise((resolve) => {
     let finished = false;
     const done = () => {
@@ -609,7 +640,7 @@ function sendGetCommand(url, timeoutMs = 1800) {
       done();
     };
 
-    commandFrame.src = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+    commandFrame.src = withCacheBust(url);
   });
 }
 
@@ -629,8 +660,20 @@ async function sendCommand(zone, action, card) {
   connectionDot.className = "connection-dot is-ok";
 }
 
-function toggleZone(zone, card) {
-  sendCommand(zone, "switch", card);
+function handleCommandClick(event, zone, action, card) {
+  const link = event.currentTarget;
+  updateCommandLink(link, action, zone);
+
+  if (!state.baseUrl) {
+    event.preventDefault();
+    openSettings(true);
+    return;
+  }
+
+  if (IS_ANDROID) return;
+
+  event.preventDefault();
+  sendCommand(zone, action, card);
 }
 
 function renderLights() {
@@ -654,9 +697,13 @@ function renderLights() {
     onButton.setAttribute("aria-label", `Encender ${zone.name}`);
     offButton.setAttribute("aria-label", `Apagar ${zone.name}`);
 
-    main.addEventListener("click", () => toggleZone(zone.id, card));
-    onButton.addEventListener("click", () => sendCommand(zone.id, "on", card));
-    offButton.addEventListener("click", () => sendCommand(zone.id, "off", card));
+    updateCommandLink(main, "switch", zone.id);
+    updateCommandLink(onButton, "on", zone.id);
+    updateCommandLink(offButton, "off", zone.id);
+
+    main.addEventListener("click", (event) => handleCommandClick(event, zone.id, "switch", card));
+    onButton.addEventListener("click", (event) => handleCommandClick(event, zone.id, "on", card));
+    offButton.addEventListener("click", (event) => handleCommandClick(event, zone.id, "off", card));
 
     lightsGrid.appendChild(fragment);
   }
