@@ -1,6 +1,6 @@
 # Domótica Luces
 
-App estática para controlar las luces de un panel INL8 desde una red local.
+App estática, autocontenida en un solo `index.html`, para controlar las luces de un panel INL8 desde una red local.
 
 ## Uso
 
