@@ -482,6 +482,7 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_PANEL = "http://192.168.1.100";
+const IS_ANDROID = /\bAndroid\b/i.test(navigator.userAgent);
 
 const ZONES = [
   { id: 1, name: "Sala principal", icon: "🛏" },
@@ -584,6 +585,11 @@ function markCard(card, status, message) {
 }
 
 function sendGetCommand(url, timeoutMs = 1800) {
+  if (IS_ANDROID) {
+    window.location.href = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+    return Promise.resolve();
+  }
+
   return new Promise((resolve) => {
     let finished = false;
     const done = () => {

@@ -47,4 +47,4 @@ La vista de botones grandes usa `switch/{zone}` para alternar sin leer estado. L
 
 ## Nota de navegador
 
-La app dispara los comandos cargando el endpoint en un `iframe` oculto para evitar depender de CORS. Eso permite usar el HTML como archivo local, pero no permite confirmar la respuesta real del panel desde JavaScript.
+En escritorio, la app dispara los comandos cargando el endpoint en un `iframe` oculto para evitar depender de CORS. En Android usa navegación directa al endpoint, porque varios navegadores y visores de archivos bloquean peticiones ocultas desde HTML local hacia IPs de red privada.
