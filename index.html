@@ -494,9 +494,25 @@ const ZONES = [
   { id: 8, name: "Balcón", icon: "🌇" },
 ];
 
+function readStoredValue(key, fallback = "") {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function writeStoredValue(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    // Some Android file managers open local HTML as content:// and block storage.
+  }
+}
+
 const state = {
-  baseUrl: localStorage.getItem(STORAGE_KEYS.baseUrl) || "",
-  mode: localStorage.getItem(STORAGE_KEYS.mode) || "full",
+  baseUrl: readStoredValue(STORAGE_KEYS.baseUrl),
+  mode: readStoredValue(STORAGE_KEYS.mode, "full"),
 };
 
 const appShell = document.querySelector(".app-shell");
@@ -512,6 +528,11 @@ const changeIpButton = document.querySelector("#changeIpButton");
 const cancelSettingsButton = document.querySelector("#cancelSettingsButton");
 const fullModeButton = document.querySelector("#fullModeButton");
 const bigModeButton = document.querySelector("#bigModeButton");
+const commandFrame = document.createElement("iframe");
+commandFrame.name = "commandFrame";
+commandFrame.title = "Comandos del panel";
+commandFrame.hidden = true;
+document.body.appendChild(commandFrame);
 
 function normalizeBaseUrl(value) {
   const trimmed = value.trim().replace(/\/+$/, "");
@@ -522,7 +543,7 @@ function normalizeBaseUrl(value) {
 
 function setMode(mode) {
   state.mode = mode;
-  localStorage.setItem(STORAGE_KEYS.mode, mode);
+  writeStoredValue(STORAGE_KEYS.mode, mode);
   appShell.classList.toggle("big-mode", mode === "big");
   fullModeButton.classList.toggle("is-active", mode === "full");
   bigModeButton.classList.toggle("is-active", mode === "big");
@@ -533,7 +554,7 @@ function setMode(mode) {
 function saveBaseUrl(value) {
   const normalized = normalizeBaseUrl(value);
   state.baseUrl = normalized;
-  localStorage.setItem(STORAGE_KEYS.baseUrl, normalized);
+  writeStoredValue(STORAGE_KEYS.baseUrl, normalized);
   baseUrlLabel.textContent = normalized;
   connectionDot.className = "connection-dot";
   return normalized;
@@ -562,21 +583,27 @@ function markCard(card, status, message) {
   card.querySelector(".light-status").textContent = message;
 }
 
-function sendGetBeacon(url, timeoutMs = 2500) {
+function sendGetCommand(url, timeoutMs = 1800) {
   return new Promise((resolve) => {
-    const image = new Image();
-    const done = () => resolve();
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      resolve();
+    };
     const timeout = setTimeout(done, timeoutMs);
 
-    image.onload = () => {
+    commandFrame.onload = () => {
       clearTimeout(timeout);
       done();
     };
-    image.onerror = () => {
+
+    commandFrame.onerror = () => {
       clearTimeout(timeout);
       done();
     };
-    image.src = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+
+    commandFrame.src = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
   });
 }
 
@@ -591,7 +618,7 @@ async function sendCommand(zone, action, card) {
   markCard(card, "is-working", `${verb}...`);
   connectionDot.className = "connection-dot";
 
-  await sendGetBeacon(url);
+  await sendGetCommand(url);
   markCard(card, "is-ok", "Comando enviado");
   connectionDot.className = "connection-dot is-ok";
 }

@@ -47,4 +47,4 @@ La vista de botones grandes usa `switch/{zone}` para alternar sin leer estado. L
 
 ## Nota de navegador
 
-La app dispara los comandos con una petición GET tipo imagen para evitar depender de CORS. Eso permite usar el HTML como archivo local, pero no permite confirmar la respuesta real del panel desde JavaScript.
+La app dispara los comandos cargando el endpoint en un `iframe` oculto para evitar depender de CORS. Eso permite usar el HTML como archivo local, pero no permite confirmar la respuesta real del panel desde JavaScript.
