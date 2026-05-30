@@ -47,4 +47,4 @@ La vista de botones grandes usa `switch/{zone}` para alternar sin leer estado. L
 
 ## Nota de navegador
 
-En escritorio, la app dispara los comandos cargando el endpoint en un `iframe` oculto para evitar depender de CORS. En Android, los controles son enlaces reales al endpoint del panel y Chrome navega directamente al comando, porque varios navegadores y visores de archivos bloquean peticiones ocultas desde HTML local hacia IPs de red privada.
+La app dispara los comandos cargando el endpoint en un `iframe` nombrado para evitar depender de CORS. En Android, los controles son enlaces reales al endpoint del panel con `target` hacia ese `iframe`, porque varios navegadores y visores de archivos bloquean peticiones programáticas desde HTML local hacia IPs de red privada.

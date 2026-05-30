@@ -221,6 +221,17 @@ h2 {
   overflow: hidden;
 }
 
+.command-frame {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
 .light-main {
   width: 100%;
   min-height: 112px;
@@ -544,9 +555,9 @@ const cancelSettingsButton = document.querySelector("#cancelSettingsButton");
 const fullModeButton = document.querySelector("#fullModeButton");
 const bigModeButton = document.querySelector("#bigModeButton");
 const commandFrame = document.createElement("iframe");
+commandFrame.className = "command-frame";
 commandFrame.name = "commandFrame";
 commandFrame.title = "Comandos del panel";
-commandFrame.hidden = true;
 document.body.appendChild(commandFrame);
 
 function normalizeBaseUrl(value) {
@@ -603,6 +614,7 @@ function commandHref(action, zone) {
 
 function updateCommandLink(link, action, zone) {
   link.href = commandHref(action, zone);
+  link.target = "commandFrame";
 }
 
 function refreshCommandLinks() {
@@ -670,7 +682,11 @@ function handleCommandClick(event, zone, action, card) {
     return;
   }
 
-  if (IS_ANDROID) return;
+  if (IS_ANDROID) {
+    markCard(card, "is-ok", "Comando enviado");
+    connectionDot.className = "connection-dot is-ok";
+    return;
+  }
 
   event.preventDefault();
   sendCommand(zone, action, card);
