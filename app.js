@@ -19,7 +19,6 @@ const ZONES = [
 const state = {
   baseUrl: localStorage.getItem(STORAGE_KEYS.baseUrl) || "",
   mode: localStorage.getItem(STORAGE_KEYS.mode) || "full",
-  zones: new Map(),
 };
 
 const appShell = document.querySelector(".app-shell");
@@ -59,7 +58,6 @@ function saveBaseUrl(value) {
   localStorage.setItem(STORAGE_KEYS.baseUrl, normalized);
   baseUrlLabel.textContent = normalized;
   connectionDot.className = "connection-dot";
-  refreshStatus();
   return normalized;
 }
 
@@ -80,96 +78,28 @@ function buildUrl(action, zone) {
   return `${state.baseUrl}/api/v2/${path}/${zone}`;
 }
 
-async function fetchWithTimeout(url, timeoutMs = 4500) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, {
-      method: "GET",
-      mode: "cors",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function sendNoCors(url) {
-  return fetch(url, {
-    method: "GET",
-    mode: "no-cors",
-    cache: "no-store",
-  });
-}
-
 function markCard(card, status, message) {
   card.classList.remove("is-working", "is-error", "is-ok");
   if (status) card.classList.add(status);
   card.querySelector(".light-status").textContent = message;
 }
 
-function relayValueToBoolean(value) {
-  if (value === 1 || value === "1" || value === true) return true;
-  if (value === 0 || value === "0" || value === false) return false;
-  return null;
-}
+function sendGetBeacon(url, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    const done = () => resolve();
+    const timeout = setTimeout(done, timeoutMs);
 
-function setZoneState(zone, isOn) {
-  const card = lightsGrid.querySelector(`[data-zone="${zone}"]`);
-  if (!card) return;
-
-  if (typeof isOn === "boolean") {
-    state.zones.set(zone, isOn);
-  } else {
-    state.zones.delete(zone);
-  }
-
-  const knownState = state.zones.get(zone);
-  const status = card.querySelector(".light-status");
-  const main = card.querySelector(".light-main");
-  card.classList.toggle("is-on", knownState === true);
-  card.classList.toggle("is-off", knownState === false);
-
-  if (knownState === true) {
-    status.textContent = "Encendida";
-    main.setAttribute("aria-label", `Apagar ${ZONES[zone - 1].name}`);
-  } else if (knownState === false) {
-    status.textContent = "Apagada";
-    main.setAttribute("aria-label", `Encender ${ZONES[zone - 1].name}`);
-  } else {
-    status.textContent = "Estado no confirmado";
-    main.setAttribute("aria-label", `Alternar ${ZONES[zone - 1].name}`);
-  }
-}
-
-function applyStatusPayload(payload) {
-  for (const zone of ZONES) {
-    const relay = payload?.relays?.[`r${zone.id}`];
-    const zoneState = payload?.zones?.[`z${zone.id}`];
-    setZoneState(zone.id, relayValueToBoolean(relay ?? zoneState));
-  }
-}
-
-async function refreshStatus() {
-  if (!state.baseUrl) return;
-
-  try {
-    const response = await fetchWithTimeout(`${state.baseUrl}/api/v2/status/relays`, 3500);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    applyStatusPayload(await response.json());
-    connectionDot.className = "connection-dot is-ok";
-  } catch (relayError) {
-    try {
-      const response = await fetchWithTimeout(`${state.baseUrl}/api/v2/status`, 3500);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      applyStatusPayload(await response.json());
-      connectionDot.className = "connection-dot is-ok";
-    } catch (statusError) {
-      connectionDot.className = "connection-dot is-error";
-      for (const zone of ZONES) setZoneState(zone.id, null);
-    }
-  }
+    image.onload = () => {
+      clearTimeout(timeout);
+      done();
+    };
+    image.onerror = () => {
+      clearTimeout(timeout);
+      done();
+    };
+    image.src = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+  });
 }
 
 async function sendCommand(zone, action, card) {
@@ -183,39 +113,13 @@ async function sendCommand(zone, action, card) {
   markCard(card, "is-working", `${verb}...`);
   connectionDot.className = "connection-dot";
 
-  try {
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    markCard(card, "is-ok", "Comando enviado");
-    if (action === "on") setZoneState(zone, true);
-    if (action === "off") setZoneState(zone, false);
-    if (action === "switch") setZoneState(zone, null);
-    refreshStatus();
-    connectionDot.className = "connection-dot is-ok";
-  } catch (error) {
-    try {
-      await sendNoCors(url);
-      markCard(card, "is-ok", "Comando enviado");
-      if (action === "on") setZoneState(zone, true);
-      if (action === "off") setZoneState(zone, false);
-      if (action === "switch") setZoneState(zone, null);
-      connectionDot.className = "connection-dot is-ok";
-    } catch (fallbackError) {
-      markCard(card, "is-error", "No se pudo contactar el panel");
-      connectionDot.className = "connection-dot is-error";
-    }
-  }
+  await sendGetBeacon(url);
+  markCard(card, "is-ok", "Comando enviado");
+  connectionDot.className = "connection-dot is-ok";
 }
 
 function toggleZone(zone, card) {
-  const currentState = state.zones.get(zone);
-  if (currentState === true) {
-    sendCommand(zone, "off", card);
-  } else if (currentState === false) {
-    sendCommand(zone, "on", card);
-  } else {
-    sendCommand(zone, "switch", card);
-  }
+  sendCommand(zone, "switch", card);
 }
 
 function renderLights() {
@@ -270,7 +174,6 @@ renderLights();
 setMode(state.mode === "big" ? "big" : "full");
 if (state.baseUrl) {
   baseUrlLabel.textContent = state.baseUrl;
-  refreshStatus();
 } else {
   baseUrlLabel.textContent = "Sin configurar";
   openSettings(true);

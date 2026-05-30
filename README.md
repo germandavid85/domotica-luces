@@ -4,7 +4,7 @@ App estática para controlar las luces de un panel INL8 desde una red local.
 
 ## Uso
 
-Abre `index.html` en el navegador. En el primer uso la app pide la IP o URL base del panel.
+Abre `index.html` directamente en el navegador. En el primer uso la app pide la IP o URL base del panel.
 
 Valor típico:
 
@@ -35,8 +35,6 @@ http://192.168.1.100
 GET /api/v2/turn-on/{zone}
 GET /api/v2/turn-off/{zone}
 GET /api/v2/switch/{zone}
-GET /api/v2/status/relays
-GET /api/v2/status
 ```
 
 Ejemplo:
@@ -45,8 +43,8 @@ Ejemplo:
 http://<IP_DEL_PANEL>/api/v2/turn-off/1
 ```
 
-La vista de botones grandes usa el estado actual para alternar: si una zona esta encendida, el toque grande la apaga; si esta apagada, la prende. Si el navegador no puede leer el estado por CORS, usa `switch/{zone}` como respaldo.
+La vista de botones grandes usa `switch/{zone}` para alternar sin leer estado. Los botones Encender y Apagar usan endpoints explícitos.
 
-## Nota sobre GitHub Pages
+## Nota de navegador
 
-La app puede publicarse como código, pero no conviene depender de GitHub Pages para usarla: una página HTTPS pública suele bloquear llamadas a un panel local HTTP por reglas de mixed content. El uso recomendado es abrir el HTML localmente o servirlo desde la misma red local.
+La app dispara los comandos con una petición GET tipo imagen para evitar depender de CORS. Eso permite usar el HTML como archivo local, pero no permite confirmar la respuesta real del panel desde JavaScript.
