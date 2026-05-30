@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101820">
+    <title>Domótica Luces</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Panel INL8</p>
+          <h1>Luces de casa</h1>
+        </div>
+        <button class="icon-button" id="settingsButton" type="button" aria-label="Ajustes" title="Ajustes">
+          <span aria-hidden="true">⚙</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="status-strip" aria-live="polite">
+          <div>
+            <span class="status-label">Panel</span>
+            <strong id="baseUrlLabel">Sin configurar</strong>
+          </div>
+          <span class="connection-dot" id="connectionDot" aria-hidden="true"></span>
+        </section>
+
+        <section class="toolbar" aria-label="Controles de vista">
+          <div class="segmented-control" role="group" aria-label="Modo de visualizacion">
+            <button class="segment is-active" id="fullModeButton" type="button">Completo</button>
+            <button class="segment" id="bigModeButton" type="button">Botones grandes</button>
+          </div>
+          <button class="secondary-button" id="changeIpButton" type="button">Cambiar IP</button>
+        </section>
+
+        <section class="lights-grid" id="lightsGrid" aria-label="Zonas de luces"></section>
+      </main>
+    </div>
+
+    <dialog class="settings-dialog" id="settingsDialog">
+      <form method="dialog" class="settings-panel" id="settingsForm">
+        <header>
+          <p class="eyebrow">Configuración</p>
+          <h2>IP del panel</h2>
+        </header>
+        <label class="field">
+          <span>Dirección IP o URL base</span>
+          <input id="ipInput" name="ip" type="text" inputmode="url" autocomplete="off" placeholder="192.168.1.100" required>
+        </label>
+        <p class="field-help">Ejemplo: 192.168.1.100 o http://192.168.1.100</p>
+        <menu class="dialog-actions">
+          <button class="secondary-button" id="cancelSettingsButton" value="cancel" type="button">Cancelar</button>
+          <button class="primary-button" value="save" type="submit">Guardar</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <template id="lightCardTemplate">
+      <article class="light-card">
+        <button class="light-main" type="button">
+          <span class="light-icon" aria-hidden="true"></span>
+          <span class="light-text">
+            <strong class="light-name"></strong>
+            <span class="light-zone"></span>
+          </span>
+        </button>
+        <div class="light-actions">
+          <button class="action-button on-button" type="button">Encender</button>
+          <button class="action-button off-button" type="button">Apagar</button>
+        </div>
+        <p class="light-status" aria-live="polite"></p>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
